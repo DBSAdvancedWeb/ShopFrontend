@@ -1,0 +1,59 @@
+@model OrderCreateViewModel
+@{
+    ViewData["Title"] = "New order";
+}
+
+<h1>New order</h1>
+
+<form asp-action="Create">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3 col-md-6">
+        <label asp-for="CustomerName" class="form-label"></label>
+        <input asp-for="CustomerName" class="form-control" />
+        <span asp-validation-for="CustomerName" class="text-danger"></span>
+    </div>
+
+    @if (Model.Lines.Count == 0)
+    {
+        <p class="text-muted">There are no items to order. <a asp-controller="Items" asp-action="Create">Add an item</a> first.</p>
+    }
+    else
+    {
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">In stock</th>
+                    <th style="width: 10rem">Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Model.Lines.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            @Model.Lines[i].Name
+                            <input type="hidden" asp-for="Lines[i].ItemId" />
+                        </td>
+                        <td class="text-end">@Model.Lines[i].Price.ToString("C")</td>
+                        <td class="text-end">@Model.Lines[i].StockQuantity</td>
+                        <td>
+                            <input asp-for="Lines[i].Quantity" class="form-control" type="number"
+                                   min="0" max="@Model.Lines[i].StockQuantity" />
+                            <span asp-validation-for="Lines[i].Quantity" class="text-danger small"></span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-primary">Place order</button>
+    }
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,21 @@
+@model ItemDto
+@{
+    ViewData["Title"] = $"Delete {Model.Name}";
+}
+
+<h1>Delete item</h1>
+<p>Are you sure you want to delete this item?</p>
+
+<dl class="row">
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Name)</dt>
+    <dd class="col-sm-9">@Model.Name</dd>
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Price)</dt>
+    <dd class="col-sm-9">@Model.Price.ToString("C")</dd>
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.StockQuantity)</dt>
+    <dd class="col-sm-9">@Model.StockQuantity</dd>
+</dl>
+
+<form asp-action="Delete" asp-route-id="@Model.Id">
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a class="btn btn-link" asp-action="Details" asp-route-id="@Model.Id">Cancel</a>
+</form>

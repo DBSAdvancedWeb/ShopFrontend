@@ -1,0 +1,13 @@
+@model string
+@{
+    var css = Model.ToLowerInvariant() switch
+    {
+        "pending" => "text-bg-warning",
+        "processing" => "text-bg-info",
+        "shipped" => "text-bg-primary",
+        "delivered" or "completed" => "text-bg-success",
+        "cancelled" => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+}
+<span class="badge @css">@Model</span>

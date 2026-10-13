@@ -1,0 +1,58 @@
+@model ShopWeb.Models.Shop.OrderDto
+@{
+    ViewData["Title"] = $"Order {Model.Id}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Orders</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Order @Model.Id</li>
+    </ol>
+</nav>
+
+<div class="d-flex align-items-center gap-3 mb-3">
+    <h1 class="mb-0">Order @Model.Id</h1>
+    <partial name="_StatusBadge" model="Model.Status" />
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Customer</dt>
+    <dd class="col-sm-9">@Model.CustomerName</dd>
+    <dt class="col-sm-3">Order date</dt>
+    <dd class="col-sm-9">@Model.OrderDate.ToString("d MMMM yyyy, HH:mm")</dd>
+</dl>
+
+<h2 class="h4 mt-4">Items in this order</h2>
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th class="text-end">Unit price</th>
+            <th class="text-end">Quantity</th>
+            <th class="text-end">Line total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var line in Model.Items)
+        {
+            <tr>
+                <td>
+                    <a asp-controller="Items" asp-action="Details" asp-route-id="@line.ItemId">@line.ItemName</a>
+                </td>
+                <td class="text-end">@line.UnitPrice.ToString("C")</td>
+                <td class="text-end">@line.Quantity</td>
+                <td class="text-end">@line.LineTotal.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr class="fw-semibold">
+            <td colspan="3" class="text-end">Order total</td>
+            <td class="text-end">@Model.Total.ToString("C")</td>
+        </tr>
+    </tfoot>
+</table>
+
+<a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+<a class="btn btn-outline-danger" asp-action="Delete" asp-route-id="@Model.Id">Delete</a>
+<a asp-action="Index" class="btn btn-outline-secondary">Back to orders</a>

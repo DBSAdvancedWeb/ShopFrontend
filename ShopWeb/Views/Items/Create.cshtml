@@ -1,0 +1,20 @@
+@model ItemDto
+@{
+    ViewData["Title"] = "New item";
+}
+
+<h1>New item</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <partial name="_ItemForm" model="Model" />
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a class="btn btn-link" asp-action="Index">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
