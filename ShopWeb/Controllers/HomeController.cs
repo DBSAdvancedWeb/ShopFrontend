@@ -8,7 +8,7 @@ public class HomeController : Controller
 {
     public IActionResult Index()
     {
-        return Views();
+        return View();
     }
 
     public IActionResult Privacy()
