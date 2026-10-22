@@ -17,10 +17,18 @@
 <dl class="row">
     <dt class="col-sm-3">Item ID</dt>
     <dd class="col-sm-9">@Model.Id</dd>
-    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.StockQuantity)</dt>
+
+    <dt class="col-sm-3">In stock</dt>
     <dd class="col-sm-9">@Model.StockQuantity</dd>
 </dl>
 
-<a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
-<a class="btn btn-outline-danger" asp-action="Delete" asp-route-id="@Model.Id">Delete</a>
-<a class="btn btn-outline-secondary" asp-action="Index">Back to items</a>
+<div class="d-flex gap-2">
+    @if (Model.StockQuantity > 0)
+    {
+        <a asp-controller="Orders" asp-action="Create" asp-route-itemId="@Model.Id"
+           class="btn btn-primary">Order this item</a>
+    }
+    <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <a class="btn btn-outline-danger" asp-action="Delete" asp-route-id="@Model.Id">Delete</a>
+    <a class="btn btn-outline-secondary" asp-action="Index">Back to items</a>
+</div>

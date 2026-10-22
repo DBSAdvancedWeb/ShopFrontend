@@ -5,7 +5,7 @@
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index">Orders</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">My orders</a></li>
         <li class="breadcrumb-item active" aria-current="page">Order @Model.Id</li>
     </ol>
 </nav>
@@ -53,6 +53,4 @@
     </tfoot>
 </table>
 
-<a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
-<a class="btn btn-outline-danger" asp-action="Delete" asp-route-id="@Model.Id">Delete</a>
-<a asp-action="Index" class="btn btn-outline-secondary">Back to orders</a>
+<a asp-action="Index" class="btn btn-outline-secondary">Back to my orders</a>

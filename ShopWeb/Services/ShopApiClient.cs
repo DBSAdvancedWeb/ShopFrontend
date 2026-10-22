@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
 using ShopWeb.Models.Shop;
 
 namespace ShopWeb.Services;
@@ -36,14 +37,26 @@ public class ShopApiClient(HttpClient http, ILogger<ShopApiClient> logger) : ISh
     public Task<OrderDto?> GetOrderAsync(int id, CancellationToken ct = default)
         => GetOrNullAsync<OrderDto>($"{OrdersPath}/{id}", ct);
 
-    public Task<OrderDto> CreateOrderAsync(OrderDto order, CancellationToken ct = default)
-        => PostAsync(OrdersPath, order, ct);
+    public async Task<CreateOrderResult> CreateOrderAsync(CreateOrderRequest request, CancellationToken ct = default)
+    {
+        using var response = await SendAsync(() => http.PostAsJsonAsync(OrdersPath, request, ct), OrdersPath);
 
-    public Task<bool> UpdateOrderAsync(OrderDto order, CancellationToken ct = default)
-        => PutAsync($"{OrdersPath}/{order.Id}", order, ct);
+        // 400 = the API rejected the order (bad item, not enough stock): show why
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(ct);
 
-    public Task<bool> DeleteOrderAsync(int id, CancellationToken ct = default)
-        => DeleteAsync($"{OrdersPath}/{id}", ct);
+            var errors = problem?.Errors.SelectMany(e => e.Value).ToList()
+                ?? ["The shop rejected the order."];
+
+            return new CreateOrderResult(null, errors);
+        }
+
+        // Anything else that fails (401, 500) throws and shows the unavailable page
+        await EnsureSuccessAsync(response, OrdersPath, ct);
+        var order = await ReadAsync<OrderDto>(response, OrdersPath, ct);
+        return new CreateOrderResult(order, []);
+    }
 
     // Helpers
 

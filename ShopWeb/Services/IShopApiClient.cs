@@ -14,7 +14,5 @@ public interface IShopApiClient
     // Orders
     Task<IReadOnlyList<OrderDto>> GetOrdersAsync(CancellationToken ct = default);
     Task<OrderDto?> GetOrderAsync(int id, CancellationToken ct = default);
-    Task<OrderDto> CreateOrderAsync(OrderDto order, CancellationToken ct = default);
-    Task<bool> UpdateOrderAsync(OrderDto order, CancellationToken ct = default);
-    Task<bool> DeleteOrderAsync(int id, CancellationToken ct = default);
+    Task<CreateOrderResult> CreateOrderAsync(CreateOrderRequest request, CancellationToken ct = default);
 }
