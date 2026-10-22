@@ -1,10 +1,10 @@
 @model OrderListViewModel
 @{
-    ViewData["Title"] = "Orders";
+    ViewData["Title"] = "My orders";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="mb-0">Orders</h1>
+    <h1 class="mb-0">My orders</h1>
     <a class="btn btn-primary" asp-action="Create">New order</a>
 </div>
 
@@ -33,7 +33,7 @@
 
 @if (!Model.Orders.Any())
 {
-    <div class="alert alert-info">No orders found.</div>
+    <div class="alert alert-info">You have no orders yet.</div>
 }
 else
 {
@@ -62,8 +62,6 @@ else
                     <td class="text-end">@o.Total.ToString("C")</td>
                     <td class="text-end text-nowrap">
                         <a asp-action="Details" asp-route-id="@o.Id" class="btn btn-sm btn-outline-primary">View</a>
-                        <a asp-action="Edit" asp-route-id="@o.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                        <a asp-action="Delete" asp-route-id="@o.Id" class="btn btn-sm btn-outline-danger">Delete</a>
                     </td>
                 </tr>
             }

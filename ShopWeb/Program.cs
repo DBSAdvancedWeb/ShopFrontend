@@ -30,12 +30,23 @@ builder.Services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+builder.Services
+    .AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IShopApiTokenService, ShopApiTokenService>();
+builder.Services.AddTransient<ShopApiAuthHandler>();
+
 builder.Services.AddHttpClient<IShopApiClient, ShopApiClient>((sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<ShopApiOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl);
     client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
 })
+.AddHttpMessageHandler<ShopApiAuthHandler>()
 .AddStandardResilienceHandler(options =>
 {
     // Don't retry POST/PUT/DELETE etc. - a retried POST could create duplicate orders
@@ -63,6 +74,14 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthorization();
+
+if (app.Environment.IsDevelopment())
+{
+    // Dev only: copy this token into ShopApi.http to call the API by hand
+    app.MapGet("/dev/api-token", (HttpContext http, IShopApiTokenService tokens) =>
+            tokens.CreateToken(http.User, TimeSpan.FromMinutes(60)))
+        .RequireAuthorization();
+}
 
 app.MapStaticAssets();
 

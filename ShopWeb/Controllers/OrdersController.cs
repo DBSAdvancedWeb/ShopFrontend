@@ -8,9 +8,7 @@ namespace ShopWeb.Controllers;
 [Authorize]
 public class OrdersController(IShopApiClient shopApi) : Controller
 {
-    public static readonly string[] Statuses = ["Pending", "Processing", "Shipped", "Completed", "Cancelled"];
-
-    // GET: Orders?status=Shipped
+    // GET /Orders?status=Pending
     public async Task<IActionResult> Index(string? status, CancellationToken ct)
     {
         var allOrders = await shopApi.GetOrdersAsync(ct);
@@ -26,149 +24,85 @@ public class OrdersController(IShopApiClient shopApi) : Controller
             Statuses = allOrders.Select(o => o.Status).Distinct().Order().ToList(),
             SelectedStatus = status
         };
+
         return View(model);
     }
 
-    // GET: Orders/Details/5
+    // GET /Orders/Details/5
     public async Task<IActionResult> Details(int id, CancellationToken ct)
     {
         var order = await shopApi.GetOrderAsync(id, ct);
         return order is null ? NotFound() : View(order);
     }
 
-    // GET: Orders/Create
-    public async Task<IActionResult> Create(CancellationToken ct)
+    // GET /Orders/Create or /Orders/Create?itemId=3 (pre-selects one of that item)
+    public async Task<IActionResult> Create(int? itemId, CancellationToken ct)
     {
-        var items = await shopApi.GetItemsAsync(ct);
-        var model = new OrderCreateViewModel
+        var quantities = new Dictionary<int, int>();
+        if (itemId is int id)
         {
-            Lines = items.Select(i => new OrderCreateLineViewModel
-            {
-                ItemId = i.Id,
-                Name = i.Name,
-                Price = i.Price,
-                StockQuantity = i.StockQuantity
-            }).ToList()
-        };
-        return View(model);
-    }
-
-    // POST: Orders/Create
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(OrderCreateViewModel model, CancellationToken ct)
-    {
-        // Re-read items so names, prices and stock come from the API, not the form
-        var items = (await shopApi.GetItemsAsync(ct)).ToDictionary(i => i.Id);
-
-        model.Lines = model.Lines.Where(l => items.ContainsKey(l.ItemId)).ToList();
-        for (var i = 0; i < model.Lines.Count; i++)
-        {
-            var line = model.Lines[i];
-            var item = items[line.ItemId];
-            line.Name = item.Name;
-            line.Price = item.Price;
-            line.StockQuantity = item.StockQuantity;
-
-            if (line.Quantity > item.StockQuantity)
-            {
-                ModelState.AddModelError($"Lines[{i}].Quantity", $"Only {item.StockQuantity} in stock.");
-            }
+            quantities[id] = 1;
         }
 
-        if (!model.Lines.Any(l => l.Quantity > 0))
+        return View(await BuildCreateModelAsync(quantities, ct));
+    }
+
+    // POST /Orders/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(CreateOrderViewModel input, CancellationToken ct)
+    {
+        var quantities = input.Lines
+            .Where(l => l.Quantity > 0)
+            .GroupBy(l => l.ItemId)
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.Quantity));
+
+        if (quantities.Count == 0)
         {
             ModelState.AddModelError(string.Empty, "Choose a quantity for at least one item.");
         }
 
-        if (!ModelState.IsValid)
+        if (ModelState.IsValid)
         {
-            return View(model);
+            var request = new CreateOrderRequest(
+                quantities.Select(q => new CreateOrderLineRequest(q.Key, q.Value)).ToList());
+
+            var result = await shopApi.CreateOrderAsync(request, ct);
+
+            if (result.Order is not null)
+            {
+                TempData["Success"] = $"Order {result.Order.Id} placed.";
+                return RedirectToAction(nameof(Details), new { id = result.Order.Id });
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
         }
 
-        var order = new OrderDto(
-            Id: 0,
-            CustomerName: model.CustomerName,
-            OrderDate: DateTime.UtcNow,
-            Status: "Pending",
-            Items: model.Lines
-                .Where(l => l.Quantity > 0)
-                .Select(l => new OrderLineDto(l.ItemId, null, l.Quantity, l.Price))
-                .ToList());
-
-        var created = await shopApi.CreateOrderAsync(order, ct);
-        TempData["Success"] = $"Order #{created.Id} placed.";
-        return RedirectToAction(nameof(Details), new { id = created.Id });
+        // Redisplay with fresh names, prices and stock from the API
+        return View(await BuildCreateModelAsync(quantities, ct));
     }
 
-    // GET: Orders/Edit/5
-    public async Task<IActionResult> Edit(int id, CancellationToken ct)
+    private async Task<CreateOrderViewModel> BuildCreateModelAsync(
+        IReadOnlyDictionary<int, int> quantities, CancellationToken ct)
     {
-        var order = await shopApi.GetOrderAsync(id, ct);
-        if (order is null)
+        var items = await shopApi.GetItemsAsync(ct);
+
+        return new CreateOrderViewModel
         {
-            return NotFound();
-        }
-
-        return View(new OrderEditViewModel
-        {
-            Id = order.Id,
-            CustomerName = order.CustomerName,
-            OrderDate = order.OrderDate,
-            Status = order.Status
-        });
-    }
-
-    // POST: Orders/Edit/5
-    // Only the order header is editable - the API's PUT doesn't update lines.
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, OrderEditViewModel model, CancellationToken ct)
-    {
-        if (id != model.Id)
-        {
-            return BadRequest();
-        }
-
-        if (!Statuses.Contains(model.Status))
-        {
-            ModelState.AddModelError(nameof(model.Status), "Choose a valid status.");
-        }
-
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        // Lines are sent empty: the API's PUT only updates the order itself
-        var order = new OrderDto(model.Id, model.CustomerName, model.OrderDate, model.Status, []);
-        if (!await shopApi.UpdateOrderAsync(order, ct))
-        {
-            return NotFound();
-        }
-
-        TempData["Success"] = $"Order #{id} updated.";
-        return RedirectToAction(nameof(Details), new { id });
-    }
-
-    // GET: Orders/Delete/5
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
-    {
-        var order = await shopApi.GetOrderAsync(id, ct);
-        return order is null ? NotFound() : View(order);
-    }
-
-    // POST: Orders/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct)
-    {
-        if (!await shopApi.DeleteOrderAsync(id, ct))
-        {
-            return NotFound();
-        }
-
-        TempData["Success"] = $"Order #{id} deleted.";
-        return RedirectToAction(nameof(Index));
+            Lines = items
+                .OrderBy(i => i.Name)
+                .Select(i => new CreateOrderLineInput
+                {
+                    ItemId = i.Id,
+                    Name = i.Name,
+                    Price = i.Price,
+                    StockQuantity = i.StockQuantity,
+                    Quantity = quantities.GetValueOrDefault(i.Id)
+                })
+                .ToList()
+        };
     }
 }
