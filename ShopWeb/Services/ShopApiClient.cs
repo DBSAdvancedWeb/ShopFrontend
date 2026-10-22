@@ -15,7 +15,7 @@ public class ShopApiClient(HttpClient http, ILogger<ShopApiClient> logger) : ISh
     // Items
 
     public async Task<IReadOnlyList<ItemDto>> GetItemsAsync(CancellationToken ct = default)
-        => GetListAsync<ItemDto>(ItemsPath, ct);
+        => await GetListAsync<ItemDto>(ItemsPath, ct);
 
     public Task<ItemDto?> GetItemAsync(int id, CancellationToken ct = default)
         => GetOrNullAsync<ItemDto>($"{ItemsPath}/{id}", ct);
